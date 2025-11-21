@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAR Image Tracking - MindAR</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.3/dist/mindar-image-aframe.prod.js"></script>
+    <!-- Custom component to make badge always face camera -->
+    <script>
+        AFRAME.registerComponent('billboard', {
+            tick: function() {
+                const camera = document.querySelector('[camera]');
+                if (camera) {
+                    const cameraPos = camera.getAttribute('position');
+                    const el = this.el;
+                    el.object3D.lookAt(cameraPos.x, cameraPos.y, cameraPos.z);
+                }
+            }
+        });
+
+        // Component to open bottom sheet on click using data attributes
+        AFRAME.registerComponent('open-sheet-on-click', {
+            init: function () {
+                const el = this.el;
+                const sheet = document.getElementById('bottomSheet');
+                const overlay = document.getElementById('bottomSheetOverlay');
+                const badgeEl = document.getElementById('bottomSheetBadge');
+                const titleEl = document.getElementById('bottomSheetTitle');
+                const captionEl = document.getElementById('bottomSheetCaption');
+                const text1El = document.getElementById('bottomSheetText1');
+                const text2El = document.getElementById('bottomSheetText2');
+
+                const name =
+                    el.id === 'badge-hit-area-1' ? 'Badge 1' :
+                    el.id === 'badge-hit-area-2' ? 'Badge 2' :
+                    'AR badge';
+
+                const toggleSheet = () => {
+                    console.log(`✅ ${name} clicked`);
+                    logDebugEntry(`RAYCAST HIT: ${name} tapped!`, 'raycast-hit');
+
+                    if (!sheet || !overlay) return;
+
+                    const sheetId = el.getAttribute('data-sheet') || '';
+                    const title = el.getAttribute('data-title') || '';
+                    const caption = el.getAttribute('data-caption') || '';
+                    const text1 = el.getAttribute('data-text1') || '';
+                    const text2 = el.getAttribute('data-text2') || '';
+                    const visualId = el.getAttribute('data-visual');
+
+                    if (badgeEl)   badgeEl.textContent = sheetId;
+                    if (titleEl)   titleEl.textContent = title;
+                    if (captionEl) captionEl.textContent = caption;
+                    if (text1El)   text1El.textContent = text1;
+                    if (text2El)   text2El.textContent = text2;
+
+                    sheet.classList.add('show');
+                    overlay.classList.add('show');
+
+                    if (visualId) {
+                        const circleEl = document.getElementById(visualId);
+                        highlightBadge(circleEl);
+                    }
+                };
+
+                el.addEventListener('click', toggleSheet);
+
+                el.addEventListener('touchstart', (evt) => {
+                    evt.stopPropagation();
+                });
+            }
+        });
+
+        // Helper function to add debug log entries
+        function logDebugEntry(message, type) {
+            const debugLog = document.getElementById('debugLog');
+            if (debugLog) {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `debug-entry ${type}`;
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                debugLog.appendChild(logEntry);
+                
+                // Keep only last 10 entries
+                while (debugLog.children.length > 10) {
+                    debugLog.removeChild(debugLog.firstChild);
+                }
+                
+                // Scroll to bottom
+                debugLog.scrollTop = debugLog.scrollHeight;
+            }
+        }
+
+        // Simple raw tap logger - just to prove Safari is sending taps
+        document.addEventListener('click', (e) => {
+            console.log('📱 Raw tap at', e.clientX, e.clientY);
+            logDebugEntry(`Raw tap at (${Math.round(e.clientX)}, ${Math.round(e.clientY)})`, 'raw-tap');
+        });
+        
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches && e.touches.length > 0) {
+                const touch = e.touches[0];
+                console.log('📱 Raw touch at', touch.clientX, touch.clientY);
+                logDebugEntry(`Raw touch at (${Math.round(touch.clientX)}, ${Math.round(touch.clientY)})`, 'raw-tap');
+            }
+        }, { passive: true });
+    </script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #fff;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 300px;
+            pointer-events: none; /* Allow taps to pass through to AR canvas */
+        }
+        #info > * {
+            pointer-events: auto; /* But allow interaction with content */
+        }
+        #startButton {
+            pointer-events: auto; /* Button should be clickable */
+        }
+        #info h1 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+        #info p {
+            margin: 5px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        #status {
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status-detected {
+            background: rgba(0, 255, 0, 0.2) !important;
+        }
+        #debugLog {
+            margin-top: 8px;
+            padding: 6px 8px;
+            background: rgba(255, 200, 0, 0.15);
+            border-radius: 4px;
+            font-size: 11px;
+            color: #FFC800;
+            font-family: monospace;
+            min-height: 16px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        #debugLog:empty {
+            display: none;
+        }
+        .debug-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .debug-entry.raw-tap {
+            color: #888;
+            font-style: italic;
+        }
+        .debug-entry.raycast-hit {
+            color: #00FF00;
+            font-weight: bold;
+        }
+        #startButton {
+            margin-top: 10px;
+            padding: 12px 20px;
+            background: #4CC3D9;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+        }
+        #startButton:hover {
+            background: #3aa8c0;
+        }
+        #startButton:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        /* Bottom Sheet Styles */
+        #bottomSheet {
+            position: fixed;
+            bottom: -50%;
+            left: 0;
+            right: 0;
+            width: 100%;
+            height: 50%;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            pointer-events: none; /* Don't block taps when hidden */
+        }
+        #bottomSheet.show {
+            bottom: 0;
+            pointer-events: auto; /* Allow interaction when shown */
+        }
+        #bottomSheetContent {
+            padding: 20px;
+            padding-top: 16px;
+        }
+        #bottomSheetHandle {
+            width: 40px;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 2px;
+            margin: 10px auto;
+        }
+        #bottomSheetHeader {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        #bottomSheetBadge {
+            width: 46px;
+            height: 46px;
+            border-radius: 6px;
+            background: #34C759;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+        #bottomSheetTitleGroup {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        #bottomSheetTitle {
+            font-size: 24px;
+            font-weight: bold;
+            color: #000;
+            margin: 0 0 4px 0;
+        }
+        #bottomSheetCaption {
+            font-size: 16px;
+            color: #666;
+            margin: 0;
+        }
+        #bottomSheetText1,
+        #bottomSheetText2 {
+            font-size: 16px;
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+        #closeBottomSheet {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+        }
+        #closeBottomSheet:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        /* Overlay backdrop when bottom sheet is open */
+        #bottomSheetOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #bottomSheetOverlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>🎯 WebAR Image Tracking</h1>
+        <p>Point your camera at the target image to see the 3D cube appear!</p>
+        <div id="status">Status: Initializing...</div>
+        <div id="debugLog"></div>
+        <button id="startButton">Start Camera</button>
+    </div>
+
+    <!-- Bottom Sheet Overlay -->
+    <div id="bottomSheetOverlay"></div>
+    
+    <!-- Bottom Sheet -->
+    <div id="bottomSheet">
+        <div id="bottomSheetHandle"></div>
+        <button id="closeBottomSheet">×</button>
+        <div id="bottomSheetContent">
+            <div id="bottomSheetHeader">
+                <div id="bottomSheetBadge">1</div>
+                <div id="bottomSheetTitleGroup">
+                    <h2 id="bottomSheetTitle">Playful Dragon</h2>
+                    <div id="bottomSheetCaption">Ryu, 6021</div>
+                </div>
+            </div>
+            <p id="bottomSheetText1">
+                A bright yellow dragon wriggles happily across a pink sky, full of colorful spots and silly shapes.
+            </p>
+            <p id="bottomSheetText2">
+                Its big smile and funny whiskers make it look friendly, not scary at all. This cheerful dragon is Ryu's favourite mythical buddy, always ready for playtime adventures.
+            </p>
+        </div>
+    </div>
+
+    <a-scene 
+        id="ar-scene"
+        mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no;"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+        color-space="sRGB"
+        renderer="colorManagement: true, physicallyCorrectLights: true"
+        embedded>
+        
+        <!-- Camera -->
+        <a-camera 
+            id="ar-camera"
+            active="true" 
+            look-controls="enabled: false" 
+            wasd-controls="enabled: false"
+            position="0 0 0"
+            raycaster="objects: .clickable; far: 1000"
+            cursor="fuse: false; rayOrigin: mouse">
+        </a-camera>
+
+        <!-- IMAGE 1 → badge "1" -->
+        <a-entity mindar-image-target="targetIndex: 0">
+            <a-entity 
+                id="badge-container-1"
+                position="0.15 0.25 0"
+                billboard
+                scale="0.15 0.15 0.15">
+                <!-- Big invisible hit area IN FRONT -->
+                <a-circle 
+                    id="badge-hit-area-1"
+                    class="clickable"
+                    radius="1.5"
+                    position="0 0 0.001"
+                    material="color: #ffffff; opacity: 0.001; transparent: true; shader: flat; side: double"
+                    open-sheet-on-click
+                    data-sheet="1"
+                    data-visual="badge-visible-1"
+                    data-title="Playful Dragon"
+                    data-caption="Ryu, 6021"
+                    data-text1="A bright yellow dragon wriggles happily across a pink sky, full of colorful spots and silly shapes."
+                    data-text2="Its big smile and funny whiskers make it look friendly, not scary at all. This cheerful dragon is Ryu's favourite mythical buddy, always ready for playtime adventures.">
+                </a-circle>
+                <!-- Visible badge -->
+                <a-circle 
+                    id="badge-visible-1"
+                    radius="0.7"
+                    color="#FF3B30"
+                    data-default-color="#FF3B30"
+                    position="0 0 0"
+                    material="shader: flat; side: double">
+                </a-circle>
+                <a-ring 
+                    radius-inner="0.68"
+                    radius-outer="0.7"
+                    color="#FFFFFF"
+                    position="0 0 0.002"
+                    opacity="0.4"
+                    material="shader: flat; side: double">
+                </a-ring>
+                <a-text 
+                    value="1"
+                    align="center"
+                    anchor="center"
+                    baseline="center"
+                    color="#FFFFFF"
+                    position="0 0.6 0.003"
+                    width="12"
+                    font="mozillavr"
+                    material="color: #FFFFFF; shader: flat"
+                    scale="2 2 2">
+                </a-text>
+            </a-entity>
+        </a-entity>
+
+        <!-- IMAGE 2 → badge "2" -->
+        <a-entity mindar-image-target="targetIndex: 1">
+            <a-entity 
+                id="badge-container-2"
+                position="0.15 0.25 0"
+                billboard
+                scale="0.15 0.15 0.15">
+                <!-- Big invisible hit area IN FRONT -->
+                <a-circle 
+                    id="badge-hit-area-2"
+                    class="clickable"
+                    radius="1.5"
+                    position="0 0 0.001"
+                    material="color: #ffffff; opacity: 0.001; transparent: true; shader: flat; side: double"
+                    open-sheet-on-click
+                    data-sheet="2"
+                    data-visual="badge-visible-2"
+                    data-title="Lady"
+                    data-caption="Harshita, 6022"
+                    data-text1="A soft, smiling mama is resting with her long flowing hair.
+                    Her face looks calm and full of love, like a warm hug."
+                    data-text2="It feels like a picture of quiet moments between mama and baby.">
+                </a-circle>
+                <!-- Visible badge -->
+                <a-circle 
+                    id="badge-visible-2"
+                    radius="0.7"
+                    color="#FF3B30"
+                    data-default-color="#FF3B30"
+                    position="0 0 0"
+                    material="shader: flat; side: double">
+                </a-circle>
+                <a-ring 
+                    radius-inner="0.68"
+                    radius-outer="0.7"
+                    color="#FFFFFF"
+                    position="0 0 0.002"
+                    opacity="0.4"
+                    material="shader: flat; side: double">
+                </a-ring>
+                <a-text 
+                    value="2"
+                    align="center"
+                    anchor="center"
+                    baseline="center"
+                    color="#FFFFFF"
+                    position="0 0.6 0.003"
+                    width="12"
+                    font="mozillavr"
+                    material="color: #FFFFFF; shader: flat"
+                    scale="2 2 2">
+                </a-text>
+            </a-entity>
+        </a-entity>
+
+        <!-- IMAGE 3 → badge "3" -->
+        <a-entity mindar-image-target="targetIndex: 2">
+            <a-entity 
+                id="badge-container-3"
+                position="0.15 0.25 0"
+                billboard
+                scale="0.15 0.15 0.15">
+                <a-circle 
+                    id="badge-hit-area-3"
+                    class="clickable"
+                    radius="1.5"
+                    position="0 0 0.001"
+                    material="color: #ffffff; opacity: 0.001; transparent: true; shader: flat; side: double"
+                    open-sheet-on-click
+                    data-sheet="3"
+                    data-visual="badge-visible-3"
+                    data-title="Rainbow Butterfly"
+                    data-caption="Lyra, 1045"
+                    data-text1="A big rainbow butterfly spreads its bright wings across the page.
+                    Every colour looks like it’s dancing and shining all at once."
+                    data-text2="It’s a happy butterfly ready to fly into a world full of fun!">
+                </a-circle>
+                <a-circle 
+                    id="badge-visible-3"
+                    radius="0.7"
+                    color="#FF3B30"
+                    data-default-color="#FF3B30"
+                    position="0 0 0"
+                    material="shader: flat; side: double">
+                </a-circle>
+                <a-ring 
+                    radius-inner="0.68"
+                    radius-outer="0.7"
+                    color="#FFFFFF"
+                    position="0 0 0.002"
+                    opacity="0.4"
+                    material="shader: flat; side: double">
+                </a-ring>
+                <a-text 
+                    value="3"
+                    align="center"
+                    anchor="center"
+                    baseline="center"
+                    color="#FFFFFF"
+                    position="0 0.6 0.003"
+                    width="12"
+                    font="mozillavr"
+                    material="color: #FFFFFF; shader: flat"
+                    scale="2 2 2">
+                </a-text>
+            </a-entity>
+        </a-entity>
+
+        <!-- IMAGE 4 → badge "4" -->
+        <a-entity mindar-image-target="targetIndex: 3">
+            <a-entity 
+                id="badge-container-4"
+                position="0.15 0.25 0"
+                billboard
+                scale="0.15 0.15 0.15">
+                <a-circle 
+                    id="badge-hit-area-4"
+                    class="clickable"
+                    radius="1.5"
+                    position="0 0 0.001"
+                    material="color: #ffffff; opacity: 0.001; transparent: true; shader: flat; side: double"
+                    open-sheet-on-click
+                    data-sheet="4"
+                    data-visual="badge-visible-4"
+                    data-title="Hungry Caterpillar"
+                    data-caption="Akshat, 4021"
+                    data-text1="A little green caterpillar is walking happily across the page.
+                    Its big red smiley head looks ready for a fun snack adventure."
+                    data-text2="Just like in The Very Hungry Caterpillar, it’s on a joyful journey!">
+                </a-circle>
+                <a-circle 
+                    id="badge-visible-4"
+                    radius="0.7"
+                    color="#FF3B30"
+                    data-default-color="#FF3B30"
+                    position="0 0 0"
+                    material="shader: flat; side: double">
+                </a-circle>
+                <a-ring 
+                    radius-inner="0.68"
+                    radius-outer="0.7"
+                    color="#FFFFFF"
+                    position="0 0 0.002"
+                    opacity="0.4"
+                    material="shader: flat; side: double">
+                </a-ring>
+                <a-text 
+                    value="4"
+                    align="center"
+                    anchor="center"
+                    baseline="center"
+                    color="#FFFFFF"
+                    position="0 0.6 0.003"
+                    width="12"
+                    font="mozillavr"
+                    material="color: #FFFFFF; shader: flat"
+                    scale="2 2 2">
+                </a-text>
+            </a-entity>
+        </a-entity>
+
+        <!-- Lighting -->
+        <a-light type="ambient" color="#fff" intensity="0.6"></a-light>
+        <a-light type="directional" position="0 1 0.5" color="#fff" intensity="0.5"></a-light>
+    </a-scene>
+
+    <script>
+        // Track detection status
+        const scene = document.querySelector('a-scene');
+        const statusEl = document.getElementById('status');
+        const startButton = document.getElementById('startButton');
+        let arSystem = null;
+        let isStarted = false;
+        const BADGE_COLOR_ACTIVE = '#34C759';
+        const BADGE_COLOR_INACTIVE = '#FF3B30';
+        let activeBadgeCircle = null;
+
+        function highlightBadge(circleEl) {
+            if (activeBadgeCircle && activeBadgeCircle !== circleEl) {
+                const prevDefault = activeBadgeCircle.getAttribute('data-default-color') || BADGE_COLOR_INACTIVE;
+                activeBadgeCircle.setAttribute('color', prevDefault);
+            }
+
+            if (circleEl) {
+                circleEl.setAttribute('color', BADGE_COLOR_ACTIVE);
+                activeBadgeCircle = circleEl;
+            } else if (activeBadgeCircle) {
+                const defaultColor = activeBadgeCircle.getAttribute('data-default-color') || BADGE_COLOR_INACTIVE;
+                activeBadgeCircle.setAttribute('color', defaultColor);
+                activeBadgeCircle = null;
+            }
+        }
+
+        // Ensure scene canvas matches actual viewport dimensions
+        function resizeSceneToViewport() {
+            if (!scene) return;
+            const width = window.innerWidth || document.documentElement.clientWidth;
+            const height = window.innerHeight || document.documentElement.clientHeight;
+            scene.style.width = width + 'px';
+            scene.style.height = height + 'px';
+            scene.style.position = 'fixed';
+            scene.style.top = '0';
+            scene.style.left = '0';
+        }
+
+        window.addEventListener('resize', resizeSceneToViewport);
+        window.addEventListener('orientationchange', resizeSceneToViewport);
+        resizeSceneToViewport();
+
+        // Log all events for debugging
+        console.log('Initializing WebAR...');
+
+        // Wait for scene to load
+        scene.addEventListener('loaded', () => {
+            console.log('A-Frame scene loaded');
+            console.log('Available systems:', Object.keys(scene.systems));
+            
+            // Wait for MindAR to register
+            setTimeout(() => {
+                // Try to find MindAR system
+                const findMindARSystem = () => {
+                    // Check all systems for MindAR
+                    for (const key in scene.systems) {
+                        if (key.toLowerCase().includes('mindar')) {
+                            console.log(`Found MindAR system: ${key}`);
+                            return scene.systems[key];
+                        }
+                    }
+                    return null;
+                };
+                
+                arSystem = findMindARSystem();
+                
+                if (arSystem) {
+                    console.log('MindAR system ready:', arSystem);
+                    statusEl.textContent = 'Status: Ready - Click Start Camera';
+                } else {
+                    console.warn('MindAR system not found, but will try attribute method');
+                    statusEl.textContent = 'Status: Ready - Click Start Camera';
+                    // We'll use attribute method as fallback
+                }
+            }, 1000);
+        });
+
+        // Handle AR ready event
+        scene.addEventListener('arReady', () => {
+            console.log('AR Ready - Camera is active');
+            statusEl.textContent = 'Status: ✅ Camera active - Scanning for image...';
+            startButton.disabled = true;
+            startButton.textContent = 'Camera Active';
+            startButton.style.display = 'none'; // Hide button when active
+            isStarted = true;
+        });
+
+        // Handle AR errors
+        scene.addEventListener('arError', (evt) => {
+            console.error('AR Error:', evt.detail);
+            statusEl.textContent = 'Status: Error - ' + evt.detail;
+            statusEl.style.background = 'rgba(255, 0, 0, 0.2)';
+            startButton.disabled = false;
+            startButton.textContent = 'Retry Camera';
+            isStarted = false;
+        });
+
+        // Listen for target found/lost events
+        const targetEntity = document.querySelector('[mindar-image-target]');
+        
+        if (targetEntity) {
+            targetEntity.addEventListener('targetFound', () => {
+                console.log('Target found!');
+                statusEl.textContent = 'Status: ✅ Image detected!';
+                statusEl.classList.add('status-detected');
+            });
+
+            targetEntity.addEventListener('targetLost', () => {
+                console.log('Target lost');
+                statusEl.textContent = 'Status: Scanning for image...';
+                statusEl.classList.remove('status-detected');
+            });
+        }
+
+        // Start button handler
+        startButton.addEventListener('click', async () => {
+            if (isStarted) return;
+            
+            try {
+                console.log('Starting AR...');
+                statusEl.textContent = 'Status: Starting camera...';
+                startButton.disabled = true;
+                startButton.textContent = 'Starting...';
+
+                // Set a timeout to prevent getting stuck
+                const timeoutId = setTimeout(() => {
+                    if (!isStarted) {
+                        console.warn('AR start timeout');
+                        statusEl.textContent = 'Status: Taking too long... Please check camera permissions.';
+                        startButton.disabled = false;
+                        startButton.textContent = 'Retry Camera';
+                    }
+                }, 10000); // 10 second timeout
+
+                // Wait a bit for the system to be ready
+                await new Promise(resolve => setTimeout(resolve, 200));
+
+                // Method 1: Try to use the system's start method
+                if (arSystem && typeof arSystem.start === 'function') {
+                    console.log('Starting MindAR via system.start()...');
+                    try {
+                        const startResult = arSystem.start();
+                        if (startResult && typeof startResult.then === 'function') {
+                            await startResult;
+                        }
+                        clearTimeout(timeoutId);
+                        console.log('MindAR started via system method');
+                        return; // Success, exit
+                    } catch (err) {
+                        console.warn('System start() failed, trying attribute method:', err);
+                    }
+                }
+                
+                // Method 2: Use attribute update (more reliable)
+                console.log('Starting MindAR via attribute update...');
+                const sceneEl = document.querySelector('a-scene');
+                
+                // Update the mindar-image attribute to trigger start
+                sceneEl.setAttribute('mindar-image', {
+                    imageTargetSrc: './targets.mind',
+                    autoStart: true,
+                    uiLoading: 'no',
+                    uiError: 'no',
+                    uiScanning: 'no'
+                });
+                
+                clearTimeout(timeoutId);
+                console.log('MindAR start triggered via attribute');
+                // Status will be updated by arReady event
+            } catch (error) {
+                console.error('Error starting AR:', error);
+                let errorMsg = 'Unknown error';
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMsg = 'Camera permission denied. Please allow camera access in browser settings.';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    errorMsg = 'No camera found. Please check your device.';
+                } else {
+                    errorMsg = error.message || error.toString();
+                }
+                statusEl.textContent = 'Status: Error - ' + errorMsg;
+                statusEl.style.background = 'rgba(255, 0, 0, 0.2)';
+                startButton.disabled = false;
+                startButton.textContent = 'Retry Camera';
+            }
+        });
+
+        // Check if targets.mind file exists
+        fetch('./targets.mind')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('targets.mind file not found');
+                }
+                console.log('targets.mind file found');
+            })
+            .catch(error => {
+                console.error('Error loading targets.mind:', error);
+                statusEl.textContent = 'Status: Error - targets.mind file not found!';
+                statusEl.style.background = 'rgba(255, 0, 0, 0.2)';
+            });
+
+        // Bottom Sheet Controls
+        const bottomSheet = document.getElementById('bottomSheet');
+        const overlay = document.getElementById('bottomSheetOverlay');
+        const closeButton = document.getElementById('closeBottomSheet');
+
+        function closeBottomSheet() {
+            if (bottomSheet) bottomSheet.classList.remove('show');
+            if (overlay) overlay.classList.remove('show');
+            highlightBadge(null);
+        }
+
+        // Close button click
+        if (closeButton) {
+            closeButton.addEventListener('click', closeBottomSheet);
+        }
+
+        // Overlay click to close
+        if (overlay) {
+            overlay.addEventListener('click', closeBottomSheet);
+        }
+
+        // Prevent bottom sheet content clicks from closing
+        if (bottomSheet) {
+            bottomSheet.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+
+    </script>
+</body>
+</html>
+

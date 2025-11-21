@@ -1,0 +1,25 @@
+{
+  "name": "webar-image-tracking",
+  "version": "1.0.0",
+  "description": "WebAR application using MindAR.js for image tracking",
+  "main": "index.html",
+  "scripts": {
+    "dev": "node server.js",
+    "dev:vite": "vite --https --host",
+    "build": "vite build",
+    "preview": "vite preview --https"
+  },
+  "keywords": [
+    "webar",
+    "ar",
+    "mindar",
+    "aframe",
+    "image-tracking"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
+
