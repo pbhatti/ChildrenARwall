@@ -3,7 +3,6 @@ dist/
 .cert/
 .DS_Store
 *.log
-targets.mind
 .env
 .vite/
 

@@ -15,11 +15,24 @@ A WebAR application that uses MindAR.js to track images in the real world and di
 - **A-Frame** - 3D rendering framework
 - **HTML5** - Frontend structure
 
+## Quick Start
+
+```bash
+npm install          # install dependencies
+npm run dev          # local HTTPS server (uses server.js)
+```
+
+- `npm run dev` spins up the bundled HTTPS server so camera permissions work on mobile.
+- `npm run dev:vite` runs the Vite dev server with HTTPS if you prefer hot-module reload.
+- `npm run build` and `npm run preview` let you test the production build locally before publishing.
+
 ## Setup Instructions
 
 ### 1. Generate the Image Target File
 
-You need to create a `targets.mind` file from your reference image. You have two options:
+You need to create a `targets.mind` file from your reference image. (The repo already contains a pre-built version for the artwork inside `Images/`, so you only need to redo this step if you change the targets.)
+
+You have two options:
 
 #### Option A: Using MindAR Web Tool (Easiest)
 1. Visit: https://hiukim.github.io/mind-ar-js-doc/tools/compile/
@@ -46,6 +59,8 @@ mind-ar image-targets --input your-image.jpg --output targets.mind
 ### 3. Host Over HTTPS
 
 **Important:** Mobile browsers require HTTPS for camera access. You have several options:
+
+> 💡 Quick option: run `npm run dev` and trust the self-signed certificate that gets generated automatically.
 
 #### Option A: Local HTTPS Development (using Node.js)
 ```bash
@@ -84,13 +99,38 @@ vite --https
 5. Point camera at your target image
 6. The 3D cube should appear!
 
+## Publish a Public HTTPS Link (GitHub Pages)
+
+This repo includes an automated GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds the Vite site and publishes it to GitHub Pages so anyone can open the project over HTTPS.
+
+1. Push the project to a GitHub repository (keep `targets.mind` and the `Images/` folder tracked so the experience works out of the box).
+2. In the repository, visit **Settings → Pages** and set the source to **GitHub Actions** (only needs to be done once).
+3. Every push to `main` (or a manual **Run workflow**) will:
+   - install dependencies with `npm ci`
+   - run `npm run build`
+   - upload the `dist/` folder as the Pages artifact
+4. GitHub publishes the site at `https://<your-username>.github.io/<repo-name>/`. The exact URL is shown in the Actions logs and in the Pages settings page.
+
+### Custom domains or different mount paths
+
+- Vite now reads `PUBLIC_BASE_PATH` (optional) so you can override the base URL if you host under a different folder or custom domain.
+- When the workflow runs on GitHub, it automatically infers the correct `/repo-name/` base, so no extra configuration is necessary for default Pages hosting.
+
+### Share the printable targets
+
+- The `Images/` directory contains the artwork the `targets.mind` file was trained on. Share those JPEG/PNG files (or print them) alongside the public link so visitors know what to scan.
+- If you regenerate `targets.mind`, commit the new file so the hosted build and downloadable assets stay in sync.
+
 ## File Structure
 
 ```
 .
-├── index.html          # Main HTML file with AR scene
-├── targets.mind        # Image target file (you need to generate this)
-└── README.md          # This file
+├── Images/                 # Printable reference images for scanning
+├── index.html              # Main HTML file with AR scene
+├── server.js               # Local HTTPS dev server
+├── targets.mind            # Pre-built MindAR target set
+├── vite.config.js          # Vite + GitHub Pages config
+└── .github/workflows/      # GitHub Pages deployment workflow
 ```
 
 ## Customization
