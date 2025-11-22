@@ -6,6 +6,9 @@
     <title>WebAR Image Tracking - MindAR</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.3/dist/mindar-image-aframe.prod.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Kavoon&display=swap" rel="stylesheet">
     <!-- Custom component to make badge always face camera -->
     <script>
         const setAppHeight = () => {
@@ -139,10 +142,9 @@
             bottom: 0;
         }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', Arial, sans-serif;
             background: #000;
             color: #fff;
-            /* Ensure body is exactly viewport size */
             width: 100vw;
             min-height: var(--app-height);
             height: var(--app-height);
@@ -151,51 +153,106 @@
         }
         #info {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: 0;
+            left: 0;
+            right: 0;
+            margin: 24px auto;
             z-index: 1000;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border-radius: 8px;
-            max-width: 300px;
-            pointer-events: none; /* Allow taps to pass through to AR canvas */
+            width: min(420px, calc(100% - 32px));
+            background: linear-gradient(180deg, #FFF6BD 0%, #FFD835 100%);
+            border-radius: 36px;
+            padding: 32px 24px 40px;
+            box-shadow: 0 15px 40px rgba(255, 177, 0, 0.35);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            pointer-events: none;
+            box-sizing: border-box;
         }
         #info > * {
-            pointer-events: auto; /* But allow interaction with content */
+            pointer-events: auto;
         }
-        #startButton {
-            pointer-events: auto; /* Button should be clickable */
+        #launchImage {
+            width: min(340px, 100%);
+            height: auto;
+            border-radius: 28px;
+            object-fit: cover;
+            display: block;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         }
-        #info h1 {
-            margin: 0 0 10px 0;
-            font-size: 18px;
+        #launchTextGroup {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
         }
-        #info p {
-            margin: 5px 0;
-            font-size: 14px;
-            line-height: 1.4;
+        #appTitle {
+            font-family: 'Kavoon', cursive;
+            font-style: normal;
+            font-weight: 400;
+            font-size: 32px;
+            line-height: 140%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #000000;
+            margin: 0;
+        }
+        #appDescription {
+            font-family: 'Inter', sans-serif;
+            font-style: normal;
+            font-weight: 400;
+            font-size: 12px;
+            line-height: 140%;
+            leading-trim: both;
+            text-edge: cap;
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #000000;
+            margin: 0;
+        }
+        #statusCard {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-top: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        #statusLabel {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(0, 0, 0, 0.65);
         }
         #status {
-            margin-top: 10px;
-            padding: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            font-size: 12px;
+            color: #000;
+            font-size: 13px;
+            font-weight: 600;
         }
         .status-detected {
-            background: rgba(0, 255, 0, 0.2) !important;
+            color: #0a8f1f;
         }
         #debugLog {
-            margin-top: 8px;
-            padding: 6px 8px;
-            background: rgba(255, 200, 0, 0.15);
-            border-radius: 4px;
+            margin-top: 12px;
+            padding: 6px 10px;
+            background: rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
             font-size: 11px;
-            color: #FFC800;
+            color: #3a2800;
             font-family: monospace;
             min-height: 16px;
-            max-height: 150px;
+            max-height: 140px;
             overflow-y: auto;
+            width: 100%;
+            box-sizing: border-box;
         }
         #debugLog:empty {
             display: none;
@@ -205,31 +262,41 @@
             padding: 2px 0;
         }
         .debug-entry.raw-tap {
-            color: #888;
+            color: #666;
             font-style: italic;
         }
         .debug-entry.raycast-hit {
-            color: #00FF00;
+            color: #0a8f1f;
             font-weight: bold;
         }
         #startButton {
-            margin-top: 10px;
-            padding: 12px 20px;
-            background: #4CC3D9;
-            color: white;
+            margin-top: 24px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            gap: 8px;
+            width: min(247px, 100%);
+            height: 40px;
+            background: #007AFF;
+            border-radius: 100px;
             border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: bold;
+            color: #FFFFFF;
+            font-weight: 600;
+            font-size: 16px;
             cursor: pointer;
-            width: 100%;
+            pointer-events: auto;
+            transition: background 0.2s ease, transform 0.2s ease;
         }
         #startButton:hover {
-            background: #3aa8c0;
+            background: #1a83ff;
+            transform: translateY(-1px);
         }
         #startButton:disabled {
-            background: #666;
+            background: rgba(0, 0, 0, 0.2);
             cursor: not-allowed;
+            transform: none;
         }
         /* Bottom Sheet Styles */
         #bottomSheet {
@@ -365,11 +432,20 @@
 </head>
 <body>
     <div id="info">
-        <h1>🎯 WebAR Image Tracking</h1>
-        <p>Point your camera at the target image to see the 3D cube appear!</p>
-        <div id="status">Status: Initializing...</div>
+        <img id="launchImage" src="./Images/launch.png" alt="Illustration showing the mural scanning experience" loading="lazy">
+        <div id="launchTextGroup">
+            <h1 id="appTitle">Mural Scanner</h1>
+            <p id="appDescription">
+                Use your camera to scan the mural.<br>
+                Tap the floating circles to learn about every artwork and its artist.
+            </p>
+        </div>
+        <div id="statusCard">
+            <span id="statusLabel">Status</span>
+            <div id="status">Ready - Tap Scan the Mural</div>
+        </div>
         <div id="debugLog"></div>
-        <button id="startButton">Start Camera</button>
+        <button id="startButton">Scan the Mural</button>
     </div>
 
     <!-- Bottom Sheet Overlay -->
@@ -759,10 +835,10 @@
                 
                 if (arSystem) {
                     console.log('MindAR system ready:', arSystem);
-                    statusEl.textContent = 'Status: Ready - Click Start Camera';
+                    statusEl.textContent = 'Status: Ready - Tap Scan the Mural';
                 } else {
                     console.warn('MindAR system not found, but will try attribute method');
-                    statusEl.textContent = 'Status: Ready - Click Start Camera';
+                    statusEl.textContent = 'Status: Ready - Tap Scan the Mural';
                     // We'll use attribute method as fallback
                 }
             }, 1000);
