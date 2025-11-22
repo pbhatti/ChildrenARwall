@@ -2,12 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>WebAR Image Tracking - MindAR</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.3/dist/mindar-image-aframe.prod.js"></script>
     <!-- Custom component to make badge always face camera -->
     <script>
+        const setAppHeight = () => {
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+            document.documentElement.style.setProperty('--app-height', `${viewportHeight}px`);
+            if (document.body) {
+                document.body.style.height = `${viewportHeight}px`;
+            }
+        };
+
+        setAppHeight();
+        window.addEventListener('resize', setAppHeight);
+        window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 150));
+        document.addEventListener('DOMContentLoaded', setAppHeight);
+
         AFRAME.registerComponent('billboard', {
             tick: function() {
                 const camera = document.querySelector('[camera]');
@@ -107,16 +120,34 @@
         }, { passive: true });
     </script>
     <style>
+        :root {
+            --app-height: 100vh;
+        }
         html, body {
             margin: 0;
             padding: 0;
-            height: 100%;
+            width: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            height: var(--app-height);
+            max-height: var(--app-height);
             overflow: hidden;
+            position: fixed; /* Lock to viewport, prevent scrolling */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }
         body {
             font-family: Arial, sans-serif;
             background: #000;
             color: #fff;
+            /* Ensure body is exactly viewport size */
+            width: 100vw;
+            min-height: var(--app-height);
+            height: var(--app-height);
+            max-height: var(--app-height);
+            overflow: hidden;
         }
         #info {
             position: absolute;
@@ -310,6 +341,25 @@
         #bottomSheetOverlay.show {
             opacity: 1;
             pointer-events: all;
+        }
+        /* Lock AR scene to exact viewport dimensions */
+        #ar-scene {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            min-height: var(--app-height) !important;
+            height: var(--app-height) !important;
+            max-height: var(--app-height) !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+        /* Ensure canvas inside scene matches exactly */
+        #ar-scene canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block !important;
         }
     </style>
 </head>
@@ -614,20 +664,74 @@
         }
 
         // Ensure scene canvas matches actual viewport dimensions
+        // Uses Visual Viewport API when available (better for mobile browsers)
         function resizeSceneToViewport() {
             if (!scene) return;
-            const width = window.innerWidth || document.documentElement.clientWidth;
-            const height = window.innerHeight || document.documentElement.clientHeight;
+            
+            // Use Visual Viewport API if available (handles mobile browser UI better)
+            let width, height;
+            if (window.visualViewport) {
+                width = window.visualViewport.width;
+                height = window.visualViewport.height;
+            } else {
+                // Fallback to innerHeight/innerWidth
+                width = window.innerWidth || document.documentElement.clientWidth;
+                height = window.innerHeight || document.documentElement.clientHeight;
+            }
+            
+            // Lock scene to exact viewport dimensions
             scene.style.width = width + 'px';
             scene.style.height = height + 'px';
             scene.style.position = 'fixed';
             scene.style.top = '0';
             scene.style.left = '0';
+            scene.style.margin = '0';
+            scene.style.padding = '0';
+            scene.style.overflow = 'hidden';
+            
+            // Also update html/body to prevent any scrolling
+            document.documentElement.style.height = height + 'px';
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.height = height + 'px';
+            document.body.style.overflow = 'hidden';
+            
+            console.log(`Viewport resized: ${width}x${height}`);
         }
 
+        // Listen to all viewport change events
         window.addEventListener('resize', resizeSceneToViewport);
         window.addEventListener('orientationchange', resizeSceneToViewport);
+        
+        // Use Visual Viewport API events if available (fires when browser UI shows/hides)
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', resizeSceneToViewport);
+            window.visualViewport.addEventListener('scroll', (e) => {
+                // Prevent any scrolling
+                e.preventDefault();
+                window.scrollTo(0, 0);
+            });
+        }
+        
+        // Prevent scrolling on touchmove
+        document.addEventListener('touchmove', (e) => {
+            // Allow scrolling only in bottom sheet when it's open
+            const bottomSheet = document.getElementById('bottomSheet');
+            if (!bottomSheet || !bottomSheet.classList.contains('show')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Prevent any programmatic scrolling
+        window.addEventListener('scroll', () => {
+            window.scrollTo(0, 0);
+        });
+        
+        // Initial resize
         resizeSceneToViewport();
+        
+        // Also resize after a short delay to catch any late viewport changes
+        setTimeout(resizeSceneToViewport, 100);
+        setTimeout(resizeSceneToViewport, 500);
 
         // Log all events for debugging
         console.log('Initializing WebAR...');
