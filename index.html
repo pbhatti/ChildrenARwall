@@ -50,6 +50,10 @@
                 const name =
                     el.id === 'badge-hit-area-1' ? 'Badge 1' :
                     el.id === 'badge-hit-area-2' ? 'Badge 2' :
+                    el.id === 'badge-hit-area-3' ? 'Badge 3' :
+                    el.id === 'badge-hit-area-4' ? 'Badge 4' :
+                    el.id === 'badge-hit-area-5' ? 'Badge 5' :
+                    el.id === 'badge-hit-area-6' ? 'Badge 6' :
                     'AR badge';
 
                 const toggleSheet = () => {
@@ -68,8 +72,8 @@
                     if (badgeEl)   badgeEl.textContent = sheetId;
                     if (titleEl)   titleEl.textContent = title;
                     if (captionEl) captionEl.textContent = caption;
-                    if (text1El)   text1El.textContent = text1;
-                    if (text2El)   text2El.textContent = text2;
+                    if (text1El)   text1El.innerHTML = text1.replace(/\n/g, '<br>');
+                    if (text2El)   text2El.innerHTML = text2.replace(/\n/g, '<br>');
 
                     sheet.classList.add('show');
                     overlay.classList.add('show');
@@ -156,12 +160,12 @@
             top: 0;
             left: 0;
             right: 0;
-            margin: 24px auto;
+            margin: 0;
             z-index: 1000;
-            width: min(420px, calc(100% - 32px));
+            width: 100%;
             background: linear-gradient(180deg, #FFF6BD 0%, #FFD835 100%);
-            border-radius: 36px;
-            padding: 0 0 40px;
+            border-radius: 0;
+            padding: 0 0 24px;
             box-shadow: 0 15px 40px rgba(255, 177, 0, 0.35);
             display: flex;
             flex-direction: column;
@@ -178,21 +182,21 @@
             height: auto;
             object-fit: cover;
             display: block;
-            margin-bottom: 40px;
+            margin-bottom: 24px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         }
         #launchTextGroup {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
             width: 100%;
         }
         #appTitle {
             font-family: 'Kavoon', cursive;
             font-style: normal;
             font-weight: 400;
-            font-size: 32px;
+            font-size: 36px;
             line-height: 140%;
             display: flex;
             align-items: center;
@@ -205,8 +209,9 @@
             font-family: 'Inter', sans-serif;
             font-style: normal;
             font-weight: 400;
-            font-size: 14px;
+            font-size: 16px;
             line-height: 160%;
+            width: min(320px, 100%);
             leading-trim: both;
             text-edge: cap;
             display: flex;
@@ -276,8 +281,8 @@
             align-items: center;
             padding: 16px;
             gap: 8px;
-            width: min(247px, 100%);
-            height: 40px;
+            width: min(320px, 100%);
+            height: 56px;
             background: #007AFF;
             border-radius: 100px;
             border: none;
@@ -439,10 +444,10 @@
                 Tap the floating circles to learn about every artwork and its artist.
             </p>
         </div>
-        <div id="statusCard">
+        <!-- <div id="statusCard">
             <span id="statusLabel">Status</span>
             <div id="status">Ready - Tap Scan the Mural</div>
-        </div>
+        </div> -->
         <!-- <div id="debugLog"></div> -->
         <button id="startButton">Scan the Mural</button>
     </div>
@@ -706,6 +711,110 @@
             </a-entity>
         </a-entity>
 
+        <!-- IMAGE 5 → badge "5" -->
+        <a-entity mindar-image-target="targetIndex: 4">
+            <a-entity 
+                id="badge-container-5"
+                position="0.15 0.25 0"
+                billboard
+                scale="0.15 0.15 0.15">
+                <a-circle 
+                    id="badge-hit-area-5"
+                    class="clickable"
+                    radius="1.5"
+                    position="0 0 0.001"
+                    material="color: #ffffff; opacity: 0.001; transparent: true; shader: flat; side: double"
+                    open-sheet-on-click
+                    data-sheet="5"
+                    data-visual="badge-visible-5"
+                    data-title="Playful Pogo"
+                    data-caption="Aishwarya & Prathamesh, 6043"
+                    data-text1="Pogo the fluffy doggo sits happily with his bright green ball."
+                    data-text2="His big round eyes look ready for playtime and cuddles.He's everyone's cheerful friend who loves to bounce, fetch, and smile!">
+                </a-circle>
+                <a-circle 
+                    id="badge-visible-5"
+                    radius="0.7"
+                    color="#FF3B30"
+                    data-default-color="#FF3B30"
+                    position="0 0 0"
+                    material="shader: flat; side: double">
+                </a-circle>
+                <a-ring 
+                    radius-inner="0.68"
+                    radius-outer="0.7"
+                    color="#FFFFFF"
+                    position="0 0 0.002"
+                    opacity="0.4"
+                    material="shader: flat; side: double">
+                </a-ring>
+                <a-text 
+                    value="5"
+                    align="center"
+                    anchor="center"
+                    baseline="center"
+                    color="#FFFFFF"
+                    position="0 0.6 0.003"
+                    width="12"
+                    font="mozillavr"
+                    material="color: #FFFFFF; shader: flat"
+                    scale="2 2 2">
+                </a-text>
+            </a-entity>
+        </a-entity>
+
+        <!-- IMAGE 6 → badge "6" -->
+        <a-entity mindar-image-target="targetIndex: 5">
+            <a-entity 
+                id="badge-container-6"
+                position="0.15 0.25 0"
+                billboard
+                scale="0.15 0.15 0.15">
+                <a-circle 
+                    id="badge-hit-area-6"
+                    class="clickable"
+                    radius="1.5"
+                    position="0 0 0.001"
+                    material="color: #ffffff; opacity: 0.001; transparent: true; shader: flat; side: double"
+                    open-sheet-on-click
+                    data-sheet="6"
+                    data-visual="badge-visible-6"
+                    data-title="Fearless"
+                    data-caption="Wartika, 6022"
+                    data-text1="A bright, colourful lion looks strong and friendly."
+                    data-text2="Its big mane shines like sunshine.This lion reminds little ones to feel brave every day.">
+                </a-circle>
+                <a-circle 
+                    id="badge-visible-6"
+                    radius="0.7"
+                    color="#FF3B30"
+                    data-default-color="#FF3B30"
+                    position="0 0 0"
+                    material="shader: flat; side: double">
+                </a-circle>
+                <a-ring 
+                    radius-inner="0.68"
+                    radius-outer="0.7"
+                    color="#FFFFFF"
+                    position="0 0 0.002"
+                    opacity="0.4"
+                    material="shader: flat; side: double">
+                </a-ring>
+                <a-text 
+                    value="6"
+                    align="center"
+                    anchor="center"
+                    baseline="center"
+                    color="#FFFFFF"
+                    position="0 0.6 0.003"
+                    width="12"
+                    font="mozillavr"
+                    material="color: #FFFFFF; shader: flat"
+                    scale="2 2 2">
+                </a-text>
+            </a-entity>
+        </a-entity>
+
         <!-- Lighting -->
         <a-light type="ambient" color="#fff" intensity="0.6"></a-light>
         <a-light type="directional" position="0 1 0.5" color="#fff" intensity="0.5"></a-light>
@@ -834,10 +943,10 @@
                 
                 if (arSystem) {
                     console.log('MindAR system ready:', arSystem);
-                    statusEl.textContent = 'Status: Ready - Tap Scan the Mural';
+                    if (statusEl) statusEl.textContent = 'Status: Ready - Tap Scan the Mural';
                 } else {
                     console.warn('MindAR system not found, but will try attribute method');
-                    statusEl.textContent = 'Status: Ready - Tap Scan the Mural';
+                    if (statusEl) statusEl.textContent = 'Status: Ready - Tap Scan the Mural';
                     // We'll use attribute method as fallback
                 }
             }, 1000);
@@ -846,20 +955,36 @@
         // Handle AR ready event
         scene.addEventListener('arReady', () => {
             console.log('AR Ready - Camera is active');
-            statusEl.textContent = 'Status: ✅ Camera active - Scanning for image...';
+            if (statusEl) statusEl.textContent = 'Status: ✅ Camera active - Scanning for image...';
             startButton.disabled = true;
             startButton.textContent = 'Camera Active';
             startButton.style.display = 'none'; // Hide button when active
+            
+            // Hide the launch screen UI to reveal the camera
+            const infoPanel = document.getElementById('info');
+            if (infoPanel) {
+                infoPanel.style.display = 'none';
+            }
+            
             isStarted = true;
         });
 
         // Handle AR errors
         scene.addEventListener('arError', (evt) => {
             console.error('AR Error:', evt.detail);
-            statusEl.textContent = 'Status: Error - ' + evt.detail;
-            statusEl.style.background = 'rgba(255, 0, 0, 0.2)';
+            if (statusEl) {
+                statusEl.textContent = 'Status: Error - ' + evt.detail;
+                statusEl.style.background = 'rgba(255, 0, 0, 0.2)';
+            }
             startButton.disabled = false;
             startButton.textContent = 'Retry Camera';
+            
+            // Show the launch screen again so user can retry
+            const infoPanel = document.getElementById('info');
+            if (infoPanel) {
+                infoPanel.style.display = 'flex';
+            }
+            
             isStarted = false;
         });
 
@@ -869,14 +994,18 @@
         if (targetEntity) {
             targetEntity.addEventListener('targetFound', () => {
                 console.log('Target found!');
-                statusEl.textContent = 'Status: ✅ Image detected!';
-                statusEl.classList.add('status-detected');
+                if (statusEl) {
+                    statusEl.textContent = 'Status: ✅ Image detected!';
+                    statusEl.classList.add('status-detected');
+                }
             });
 
             targetEntity.addEventListener('targetLost', () => {
                 console.log('Target lost');
-                statusEl.textContent = 'Status: Scanning for image...';
-                statusEl.classList.remove('status-detected');
+                if (statusEl) {
+                    statusEl.textContent = 'Status: Scanning for image...';
+                    statusEl.classList.remove('status-detected');
+                }
             });
         }
 
@@ -886,7 +1015,7 @@
             
             try {
                 console.log('Starting AR...');
-                statusEl.textContent = 'Status: Starting camera...';
+                if (statusEl) statusEl.textContent = 'Status: Starting camera...';
                 startButton.disabled = true;
                 startButton.textContent = 'Starting...';
 
@@ -894,7 +1023,7 @@
                 const timeoutId = setTimeout(() => {
                     if (!isStarted) {
                         console.warn('AR start timeout');
-                        statusEl.textContent = 'Status: Taking too long... Please check camera permissions.';
+                        if (statusEl) statusEl.textContent = 'Status: Taking too long... Please check camera permissions.';
                         startButton.disabled = false;
                         startButton.textContent = 'Retry Camera';
                     }
@@ -945,8 +1074,10 @@
                 } else {
                     errorMsg = error.message || error.toString();
                 }
-                statusEl.textContent = 'Status: Error - ' + errorMsg;
-                statusEl.style.background = 'rgba(255, 0, 0, 0.2)';
+                if (statusEl) {
+                    statusEl.textContent = 'Status: Error - ' + errorMsg;
+                    statusEl.style.background = 'rgba(255, 0, 0, 0.2)';
+                }
                 startButton.disabled = false;
                 startButton.textContent = 'Retry Camera';
             }
@@ -962,8 +1093,10 @@
             })
             .catch(error => {
                 console.error('Error loading targets.mind:', error);
-                statusEl.textContent = 'Status: Error - targets.mind file not found!';
-                statusEl.style.background = 'rgba(255, 0, 0, 0.2)';
+                if (statusEl) {
+                    statusEl.textContent = 'Status: Error - targets.mind file not found!';
+                    statusEl.style.background = 'rgba(255, 0, 0, 0.2)';
+                }
             });
 
         // Bottom Sheet Controls
